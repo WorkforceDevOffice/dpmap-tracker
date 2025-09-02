@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DPMAP Accomplishment Tracker</title>
-    <!-- Use Tailwind CSS via CDN for easy styling without a build process -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Ensure the body takes up the full viewport height */
@@ -20,7 +19,6 @@
         <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">DPMAP Accomplishment Tracker</h1>
         <p class="text-gray-600 mb-6 text-center">Record your achievements throughout the year to prepare for your annual appraisal.</p>
         
-        <!-- Accomplishment Input Form -->
         <form id="accomplishmentForm" class="space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -55,15 +53,18 @@
 
         <hr class="my-8 border-gray-200" />
 
-        <!-- Accomplishments List -->
         <div id="accomplishments-container">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-2xl font-bold text-gray-800">Your Accomplishments</h2>
-              <button id="clearAllBtn" class="text-sm text-red-500 hover:text-red-700 font-medium">Clear All</button>
+              <div class="flex space-x-2">
+                <button id="downloadBtn" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Download Data</button>
+                <button id="uploadBtn" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Upload Data</button>
+                <button id="clearAllBtn" class="text-sm text-red-500 hover:text-red-700 font-medium">Clear All</button>
+              </div>
             </div>
             <div id="accomplishments-list" class="space-y-4">
-                <!-- Accomplishments will be dynamically added here -->
-            </div>
+                </div>
+            <input type="file" id="fileInput" class="hidden" accept=".json">
         </div>
     </div>
 
@@ -72,6 +73,9 @@
             const form = document.getElementById('accomplishmentForm');
             const listContainer = document.getElementById('accomplishments-list');
             const clearAllBtn = document.getElementById('clearAllBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileInput = document.getElementById('fileInput');
             const saveBtn = form.querySelector('button[type="submit"]');
 
             // Function to load accomplishments from localStorage
@@ -169,12 +173,54 @@
 
             // Handle clear all button
             clearAllBtn.addEventListener('click', () => {
-                // For a local file, a simple confirmation is perfectly fine.
                 if (window.confirm('Are you sure you want to clear all recorded accomplishments? This action cannot be undone.')) {
                     currentAccomplishments = [];
                     saveAccomplishments(currentAccomplishments);
                     renderAccomplishments(currentAccomplishments);
                 }
+            });
+
+            // New: Handle download button
+            downloadBtn.addEventListener('click', () => {
+                const dataStr = JSON.stringify(currentAccomplishments, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `accomplishments_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // New: Handle upload button
+            uploadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (Array.isArray(importedData)) {
+                            currentAccomplishments = importedData;
+                            saveAccomplishments(currentAccomplishments);
+                            renderAccomplishments(currentAccomplishments);
+                            alert('Data uploaded successfully!');
+                        } else {
+                            throw new Error('Invalid file format.');
+                        }
+                    } catch (error) {
+                        alert('Failed to load data. Please make sure you are uploading a valid accomplishments file.');
+                        console.error('File upload error:', error);
+                    }
+                };
+                reader.readAsText(file);
             });
         });
     </script>
