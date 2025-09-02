@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPMAP Accomplishment Tracker</title>
+    <!-- Use Tailwind CSS via CDN for easy styling without a build process -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Ensure the body takes up the full viewport height */
+        body {
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-4 sm:p-8 flex items-center justify-center">
+
+    <div class="max-w-4xl w-full mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">DPMAP Accomplishment Tracker</h1>
+        <p class="text-gray-600 mb-6 text-center">Record your achievements throughout the year to prepare for your annual appraisal.</p>
+        
+        <!-- Accomplishment Input Form -->
+        <form id="accomplishmentForm" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="employeeName" class="block text-sm font-medium text-gray-700 mb-1">Employee Name</label>
+                    <input type="text" id="employeeName" name="employeeName" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="accomplishmentDate" class="block text-sm font-medium text-gray-700 mb-1">Date of Accomplishment</label>
+                    <input type="date" id="accomplishmentDate" name="accomplishmentDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+            
+            <div>
+                <label for="dpmapGoal" class="block text-sm font-medium text-gray-700 mb-1">Associated DPMAP Goal/Objective</label>
+                <input type="text" id="dpmapGoal" name="dpmapGoal" placeholder="e.g., Critical Element 1: Communications" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Accomplishment Description</label>
+                <textarea id="description" name="description" rows="4" required placeholder="Describe your achievement in detail, including the impact and outcome." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+            </div>
+
+            <div>
+                <label for="documentationLink" class="block text-sm font-medium text-gray-700 mb-1">Link to Supporting Documentation (Optional)</label>
+                <input type="url" id="documentationLink" name="documentationLink" placeholder="e.g., https://sharepoint.com/project-report" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition duration-300">
+                Add Accomplishment
+            </button>
+        </form>
+
+        <hr class="my-8 border-gray-200" />
+
+        <!-- Accomplishments List -->
+        <div id="accomplishments-container">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-2xl font-bold text-gray-800">Your Accomplishments</h2>
+              <button id="clearAllBtn" class="text-sm text-red-500 hover:text-red-700 font-medium">Clear All</button>
+            </div>
+            <div id="accomplishments-list" class="space-y-4">
+                <!-- Accomplishments will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('accomplishmentForm');
+            const listContainer = document.getElementById('accomplishments-list');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const saveBtn = form.querySelector('button[type="submit"]');
+
+            // Function to load accomplishments from localStorage
+            const loadAccomplishments = () => {
+                const storedAccomplishments = localStorage.getItem('dpmap_accomplishments');
+                return storedAccomplishments ? JSON.parse(storedAccomplishments) : [];
+            };
+
+            // Function to save accomplishments to localStorage
+            const saveAccomplishments = (accomplishments) => {
+                localStorage.setItem('dpmap_accomplishments', JSON.stringify(accomplishments));
+            };
+
+            // Function to render the accomplishments to the DOM
+            const renderAccomplishments = (accomplishments) => {
+                listContainer.innerHTML = ''; // Clear existing list
+                if (accomplishments.length === 0) {
+                    listContainer.innerHTML = '<p class="text-gray-500 text-center">No accomplishments added yet.</p>';
+                } else {
+                    accomplishments.forEach((item, index) => {
+                        const card = document.createElement('div');
+                        card.classList.add('bg-gray-50', 'p-4', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-200', 'flex', 'flex-col', 'space-y-2');
+                        
+                        const dateString = item.accomplishmentDate ? new Date(item.accomplishmentDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+                        
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg font-semibold text-indigo-800">${item.dpmapGoal || 'General Accomplishment'}</h3>
+                                <span class="text-sm text-gray-500">${dateString}</span>
+                            </div>
+                            <p class="text-gray-700">${item.description}</p>
+                            ${item.documentationLink ? `<a href="${item.documentationLink}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline text-sm truncate">Supporting Document</a>` : ''}
+                            <div class="flex justify-end space-x-2 mt-2">
+                                <button type="button" class="edit-btn text-sm text-gray-500 hover:text-gray-800" data-index="${index}">Edit</button>
+                                <button type="button" class="delete-btn text-sm text-red-500 hover:text-red-700" data-index="${index}">Delete</button>
+                            </div>
+                        `;
+                        listContainer.appendChild(card);
+                    });
+                }
+            };
+
+            // Initial render
+            let currentAccomplishments = loadAccomplishments();
+            renderAccomplishments(currentAccomplishments);
+            
+            // Handle form submission
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const isEditing = form.dataset.editingIndex !== undefined;
+                const newAccomplishment = {
+                    employeeName: document.getElementById('employeeName').value,
+                    accomplishmentDate: document.getElementById('accomplishmentDate').value,
+                    dpmapGoal: document.getElementById('dpmapGoal').value,
+                    description: document.getElementById('description').value,
+                    documentationLink: document.getElementById('documentationLink').value,
+                };
+                
+                if (isEditing) {
+                    const index = parseInt(form.dataset.editingIndex);
+                    currentAccomplishments[index] = newAccomplishment;
+                    delete form.dataset.editingIndex;
+                    saveBtn.textContent = 'Add Accomplishment';
+                } else {
+                    currentAccomplishments.push(newAccomplishment);
+                }
+                
+                saveAccomplishments(currentAccomplishments);
+                renderAccomplishments(currentAccomplishments);
+                form.reset();
+            });
+
+            // Handle delete and edit buttons
+            listContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const index = parseInt(e.target.dataset.index);
+                    currentAccomplishments.splice(index, 1);
+                    saveAccomplishments(currentAccomplishments);
+                    renderAccomplishments(currentAccomplishments);
+                } else if (e.target.classList.contains('edit-btn')) {
+                    const index = parseInt(e.target.dataset.index);
+                    const itemToEdit = currentAccomplishments[index];
+                    
+                    document.getElementById('employeeName').value = itemToEdit.employeeName;
+                    document.getElementById('accomplishmentDate').value = itemToEdit.accomplishmentDate;
+                    document.getElementById('dpmapGoal').value = itemToEdit.dpmapGoal;
+                    document.getElementById('description').value = itemToEdit.description;
+                    document.getElementById('documentationLink').value = itemToEdit.documentationLink;
+                    
+                    form.dataset.editingIndex = index;
+                    saveBtn.textContent = 'Update Accomplishment';
+                }
+            });
+
+            // Handle clear all button
+            clearAllBtn.addEventListener('click', () => {
+                // For a local file, a simple confirmation is perfectly fine.
+                if (window.confirm('Are you sure you want to clear all recorded accomplishments? This action cannot be undone.')) {
+                    currentAccomplishments = [];
+                    saveAccomplishments(currentAccomplishments);
+                    renderAccomplishments(currentAccomplishments);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
